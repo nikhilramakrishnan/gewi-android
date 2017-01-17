@@ -144,7 +144,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 				try {
 					//send data to service
 					value = message.getBytes("UTF-8");
-                    // send message to method to pull up different functions
 					mService.writeRXCharacteristic(value);
 					//Update the log with time stamp
 					String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
@@ -245,6 +244,28 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                      public void run() {
                          try {
                          	String text = new String(rxValue, "UTF-8");
+                             // send message to method to pull up different functions
+                             MotionAction motionAction = readTransmissionAndReturnAction(
+                                     text.trim().toLowerCase());
+                             switch (motionAction) {
+                                 case SQUEEZE:
+                                     Toast.makeText(
+                                                 getApplicationContext(), "SQUEEZE", Toast.LENGTH_SHORT)
+                                                 .show();
+                                     break;
+                                 case UP:
+                                     Toast.makeText(
+                                             getApplicationContext(), "UP", Toast.LENGTH_SHORT)
+                                             .show();
+                                     break;
+                                 case DOWN:
+                                     Toast.makeText(
+                                             getApplicationContext(), "DOWN", Toast.LENGTH_SHORT)
+                                             .show();
+                                     break;
+                                 default:
+                                     break;
+                                 }
                          	String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
                         	 	listAdapter.add("["+currentDateTimeString+"] RX: "+text);
                         	 	messageListView.smoothScrollToPosition(listAdapter.getCount() - 1);
@@ -264,6 +285,28 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
         }
     };
+
+    /**
+     * Accepts a transmitted string thru serial comms from Arduino.
+     * Returns an enum that can be stored and you can do whatever with it.
+     *
+     * @param transmitted the string from serial comms thru arduino.
+     * @return {@link MotionAction} that tells rest of code what to do.
+     */
+    private MotionAction readTransmissionAndReturnAction(String transmitted) {
+        if (transmitted.contains("squeeze")) {
+            return MotionAction.SQUEEZE;
+        }
+        if (transmitted.contains("up")) {
+            return MotionAction.UP;
+        }
+        if (transmitted.contains("down")) {
+            return MotionAction.DOWN;
+        }
+        // this should never happen
+        Log.e(TAG, "None of the gestures took place");
+        return MotionAction.WAT;
+    }
 
     private void service_init() {
         Intent bindIntent = new Intent(this, UartService.class);
