@@ -46,6 +46,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -86,10 +87,17 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private ArrayAdapter<String> listAdapter;
     private Button btnConnectDisconnect,btnSend;
     private EditText edtMessage;
+    private LinearLayout hud;
+    private TextView iconTitle;
+    private TextView valueTitle;
+    private Modes modes;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        if (getActionBar() != null) {
+            getActionBar().hide();
+        }
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBtAdapter == null) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
@@ -102,6 +110,17 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         messageListView.setDivider(null);
         btnConnectDisconnect=(Button) findViewById(R.id.btn_select);
         btnSend=(Button) findViewById(R.id.sendButton);
+
+        hud = (LinearLayout) findViewById(R.id.hud);
+        iconTitle = (TextView) hud.findViewById(R.id.icon);
+        valueTitle = (TextView) hud.findViewById(R.id.value);
+
+        modes = new Modes();
+
+        iconTitle.setText("ICON: " + modes.getIconType());
+        valueTitle.setText("ICON: " + modes.getValue());
+
+        hud.setVisibility(View.INVISIBLE);
         edtMessage = (EditText) findViewById(R.id.sendText);
         service_init();
 
@@ -202,6 +221,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                          	String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
                              Log.d(TAG, "UART_CONNECT_MSG");
                              btnConnectDisconnect.setText("Disconnect");
+                         btnConnectDisconnect.setVisibility(View.INVISIBLE);
+                         findViewById(R.id.hud).setVisibility(View.VISIBLE);
+                         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                              edtMessage.setEnabled(true);
                              btnSend.setEnabled(true);
                              ((TextView) findViewById(R.id.deviceName)).setText(mDevice.getName()+ " - ready");
@@ -252,16 +274,24 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      Toast.makeText(
                                                  getApplicationContext(), "SQUEEZE", Toast.LENGTH_SHORT)
                                                  .show();
+                                     modes.next();
+                                     valueTitle.setText("VALUE: " + modes.getValue());
+                                     iconTitle.setText("ICON: " + modes.getIconType());
                                      break;
                                  case UP:
                                      Toast.makeText(
                                              getApplicationContext(), "UP", Toast.LENGTH_SHORT)
                                              .show();
+                                     modes.incrementCurrentValue(5);
+                                     valueTitle.setText("VALUE: " + modes.getValue());
+
                                      break;
                                  case DOWN:
                                      Toast.makeText(
                                              getApplicationContext(), "DOWN", Toast.LENGTH_SHORT)
                                              .show();
+                                     modes.decrementCurrentValue(5);
+                                     valueTitle.setText("VALUE: " + modes.getValue());
                                      break;
                                  default:
                                      break;
@@ -393,7 +423,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                 ((TextView) findViewById(R.id.deviceName)).setText(mDevice.getName()+ " - connecting");
                 mService.connect(deviceAddress);
 
-
             }
             break;
         case REQUEST_ENABLE_BT:
@@ -427,6 +456,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
     @Override
     public void onBackPressed() {
+        if (btnConnectDisconnect.getVisibility() != View.VISIBLE) {
+            btnConnectDisconnect.setVisibility(View.VISIBLE);
+            findViewById(R.id.hud).setVisibility(View.INVISIBLE);
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            return;
+        }
+
         if (mState == UART_PROFILE_CONNECTED) {
             Intent startMain = new Intent(Intent.ACTION_MAIN);
             startMain.addCategory(Intent.CATEGORY_HOME);
@@ -448,6 +484,58 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             })
             .setNegativeButton(R.string.popup_no, null)
             .show();
+        }
+    }
+
+    class Modes {
+        private final String[] iconTypes;
+        private final int[] values;
+
+        private int currentPosition;
+
+        public Modes(String[] iconTypes, int[] values, int currentPosition) {
+            this.iconTypes = iconTypes;
+            this.values = values;
+            this.currentPosition = currentPosition;
+        }
+
+        public Modes() {
+            this.iconTypes = new String[] {"fan", "temperature", "radio", "ventilation"};
+            this.values = new int[4];
+            this.currentPosition = 0;
+
+
+        }
+
+        public String getIconType() {
+            return iconTypes[currentPosition];
+        }
+
+        public int getValue() {
+            return values[currentPosition];
+        }
+
+        public int getCurrentPosition() {
+            return currentPosition;
+        }
+
+        public void incrementCurrentValue(int value) {
+            values[currentPosition] += value;
+        }
+
+        public void decrementCurrentValue(int value) {
+            values[currentPosition] -= value;
+        }
+
+        public void setCurrentPosition(int currentPosition) {
+            this.currentPosition = currentPosition;
+        }
+
+        public void next() {
+            this.currentPosition = currentPosition+1;
+            if (currentPosition == 4) {
+                currentPosition = 0;
+            }
         }
     }
 }
