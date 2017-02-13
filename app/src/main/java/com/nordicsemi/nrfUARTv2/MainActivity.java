@@ -55,6 +55,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Gravity;
@@ -62,9 +63,11 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RadioGroup;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -87,9 +90,15 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private ArrayAdapter<String> listAdapter;
     private Button btnConnectDisconnect,btnSend;
     private EditText edtMessage;
+
     private LinearLayout hud;
     private TextView iconTitle;
     private TextView valueTitle;
+
+    private RelativeLayout iconHud;
+    private ImageView iconImage;
+    private TextView valueNumber;
+
     private Modes modes;
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,12 +124,18 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         iconTitle = (TextView) hud.findViewById(R.id.icon);
         valueTitle = (TextView) hud.findViewById(R.id.value);
 
+        iconHud = (RelativeLayout) findViewById(R.id.iconHud);
+        iconImage = (ImageView) iconHud.findViewById(R.id.iconImage);
+        valueNumber = (TextView) iconHud.findViewById(R.id.valueNumber);
+
         modes = new Modes();
 
         iconTitle.setText("ICON: " + modes.getIconType());
-        valueTitle.setText("ICON: " + modes.getValue());
+        valueTitle.setText("VALUE: " + modes.getValue());
+        valueNumber.setText(modes.getValue());
 
         hud.setVisibility(View.INVISIBLE);
+        iconHud.setVisibility(View.INVISIBLE);
         edtMessage = (EditText) findViewById(R.id.sendText);
         service_init();
 
@@ -222,7 +237,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                              Log.d(TAG, "UART_CONNECT_MSG");
                              btnConnectDisconnect.setText("Disconnect");
                          btnConnectDisconnect.setVisibility(View.INVISIBLE);
-                         findViewById(R.id.hud).setVisibility(View.VISIBLE);
+                         findViewById(R.id.hud).setVisibility(View.INVISIBLE);
+                         findViewById(R.id.iconHud).setVisibility(View.VISIBLE);
                          setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                              edtMessage.setEnabled(true);
                              btnSend.setEnabled(true);
@@ -277,6 +293,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      modes.next();
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      iconTitle.setText("ICON: " + modes.getIconType());
+                                     valueNumber.setText(modes.getValue());
+                                     iconImage.setImageResource(modes.getImage());
+
                                      break;
                                  case UP:
                                      Toast.makeText(
@@ -284,6 +303,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                              .show();
                                      modes.incrementCurrentValue(5);
                                      valueTitle.setText("VALUE: " + modes.getValue());
+                                     valueNumber.setText(modes.getValue());
 
                                      break;
                                  case DOWN:
@@ -292,6 +312,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                              .show();
                                      modes.decrementCurrentValue(5);
                                      valueTitle.setText("VALUE: " + modes.getValue());
+                                     valueNumber.setText(modes.getValue());
+
                                      break;
                                  default:
                                      break;
@@ -500,8 +522,11 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public Modes() {
-            this.iconTypes = new String[] {"fan", "temperature", "radio", "ventilation"};
-            this.values = new int[4];
+            this.iconTypes = new String[] {"radio", "volume"};
+            this.values = new int[iconTypes.length];
+            for (int index : values) {
+                values[index] = 0;
+            }
             this.currentPosition = 0;
 
 
@@ -511,8 +536,31 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             return iconTypes[currentPosition];
         }
 
-        public int getValue() {
-            return values[currentPosition];
+        /**
+         *
+         * @return a resource ID to an image in the drawables folder
+         */
+        public int getImage() {
+            if (getIconType().contains("fan")) {
+                // return fan icon image resource id
+            }
+            if (getIconType().contains("temperature")) {
+                // return thermometer icon resource id
+            }
+            if (getIconType().contains("radio")) {
+                // return radio icon resource id
+                return R.drawable.ic_headset_black_24dp;
+            }
+            if (getIconType().contains("volume")) {
+                // return volume icon resource id
+                return R.drawable.ic_volume_up_black_24dp;
+            }
+            return R.drawable.nrfuart_hdpi_icon;
+        }
+
+        @NonNull
+        public String getValue() {
+            return values[currentPosition]+"";
         }
 
         public int getCurrentPosition() {
@@ -533,7 +581,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
         public void next() {
             this.currentPosition = currentPosition+1;
-            if (currentPosition == 4) {
+            if (currentPosition == iconTypes.length) {
                 currentPosition = 0;
             }
         }
