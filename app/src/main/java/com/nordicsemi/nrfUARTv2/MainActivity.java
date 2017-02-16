@@ -290,13 +290,11 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      text.trim().toLowerCase());
                              switch (motionAction) {
                                  case SQUEEZE:
-                                     Toast.makeText(
-                                                 getApplicationContext(), "SQUEEZE", Toast.LENGTH_SHORT)
-                                                 .show();
                                      modes.next();
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      iconTitle.setText("ICON: " + modes.getIconType());
                                      valueNumber.setText(modes.getValue()+"");
+                                     valueCounter.setRange(modes.getMaximum());
                                      valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
                                      valueCounter.setMetricText(modes.getMetricText());
                                      iconImage.setImageResource(modes.getImage());
@@ -304,25 +302,21 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
                                      break;
                                  case UP:
-                                     Toast.makeText(
-                                             getApplicationContext(), "UP", Toast.LENGTH_SHORT)
-                                             .show();
-                                     modes.incrementCurrentValue(5);
+                                     modes.incrementCurrentValue(1);
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      valueNumber.setText(modes.getValue()+"");
                                      valueCounter.setMetricText(modes.getMetricText());
+                                     valueCounter.setRange(modes.getMaximum());
                                      valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
 
                                      break;
                                  case DOWN:
-                                     Toast.makeText(
-                                             getApplicationContext(), "DOWN", Toast.LENGTH_SHORT)
-                                             .show();
-                                     modes.decrementCurrentValue(5);
+                                     modes.decrementCurrentValue(1);
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      valueCounter.setMetricText(modes.getMetricText());
                                      valueNumber.setText(modes.getValue()+"");
-                                     valueCounter.setValues(modes.getValue(), 0, 0);
+                                     valueCounter.setRange(modes.getMaximum());
+                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
 
                                      break;
                                  default:
@@ -589,7 +583,26 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public int getValue() {
+            if (getIconType().contains("radio")) {
+                return values[currentPosition]+89;
+            }
             return values[currentPosition];
+        }
+
+        public int getMaximum() {
+            if (getIconType().contains("fan")) {
+                return 4;
+            }
+            if (getIconType().contains("temperature")) {
+                return 30;
+            }
+            if (getIconType().contains("radio")) {
+                return 20;
+            }
+            if (getIconType().contains("volume")) {
+                return 100;
+            }
+            return -1;
         }
 
         public int getCurrentPosition() {
