@@ -1,0 +1,83 @@
+[
+    {
+        "outputFile": "C:\\devrep\\gewi-android\\circularcounter\\build\\intermediates\\incremental\\mergeDebugAndroidTestResources\\merged.dir\\values\\values.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 362,
+                    "endColumn": 45,
+                    "endOffset": 403
+                },
+                "from": {
+                    "file": "C:\\devrep\\gewi-android\\circularcounter\\build\\intermediates\\bundles\\debug\\res\\values\\values.xml",
+                    "position": {
+                        "startLine": 3,
+                        "startColumn": 4,
+                        "startOffset": 362,
+                        "endColumn": 45,
+                        "endOffset": 403
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 408,
+                    "endColumn": 41,
+                    "endOffset": 445
+                },
+                "from": {
+                    "file": "C:\\devrep\\gewi-android\\circularcounter\\build\\intermediates\\bundles\\debug\\res\\values\\values.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 408,
+                        "endColumn": 41,
+                        "endOffset": 445
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 450,
+                    "endColumn": 39,
+                    "endOffset": 485
+                },
+                "from": {
+                    "file": "C:\\devrep\\gewi-android\\circularcounter\\build\\intermediates\\bundles\\debug\\res\\values\\values.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 450,
+                        "endColumn": 39,
+                        "endOffset": 485
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 490,
+                    "endColumn": 36,
+                    "endOffset": 522
+                },
+                "from": {
+                    "file": "C:\\devrep\\gewi-android\\circularcounter\\build\\intermediates\\bundles\\debug\\res\\values\\values.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 490,
+                        "endColumn": 36,
+                        "endOffset": 522
+                    }
+                }
+            }
+        ]
+    }
+]

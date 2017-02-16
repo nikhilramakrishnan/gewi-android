@@ -31,6 +31,7 @@ import java.text.DateFormat;
 import java.util.Date;
 
 
+import com.db.circularcounter.CircularCounter;
 import com.nordicsemi.nrfUARTv2.UartService;
 
 import android.app.Activity;
@@ -98,6 +99,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private RelativeLayout iconHud;
     private ImageView iconImage;
     private TextView valueNumber;
+    private CircularCounter valueCounter;
 
     private Modes modes;
     @Override
@@ -127,12 +129,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         iconHud = (RelativeLayout) findViewById(R.id.iconHud);
         iconImage = (ImageView) iconHud.findViewById(R.id.iconImage);
         valueNumber = (TextView) iconHud.findViewById(R.id.valueNumber);
+        valueCounter = (CircularCounter) iconHud.findViewById(R.id.valueCounter);
 
         modes = new Modes();
 
         iconTitle.setText("ICON: " + modes.getIconType());
         valueTitle.setText("VALUE: " + modes.getValue());
-        valueNumber.setText(modes.getValue());
+        valueNumber.setText(modes.getValue()+"");
 
         hud.setVisibility(View.INVISIBLE);
         iconHud.setVisibility(View.INVISIBLE);
@@ -236,7 +239,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                          	String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
                              Log.d(TAG, "UART_CONNECT_MSG");
                              btnConnectDisconnect.setText("Disconnect");
-                         btnConnectDisconnect.setVisibility(View.INVISIBLE);
+                         btnConnectDisconnect.setVisibility(View.GONE);
                          findViewById(R.id.hud).setVisibility(View.INVISIBLE);
                          findViewById(R.id.iconHud).setVisibility(View.VISIBLE);
                          setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
@@ -293,8 +296,11 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      modes.next();
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      iconTitle.setText("ICON: " + modes.getIconType());
-                                     valueNumber.setText(modes.getValue());
+                                     valueNumber.setText(modes.getValue()+"");
+                                     valueCounter.setValues(modes.getValue(), 0, 0);
+                                     valueCounter.setMetricText(modes.getMetricText());
                                      iconImage.setImageResource(modes.getImage());
+                                     ((GewiLayout) iconHud).setColors(modes);
 
                                      break;
                                  case UP:
@@ -303,7 +309,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                              .show();
                                      modes.incrementCurrentValue(5);
                                      valueTitle.setText("VALUE: " + modes.getValue());
-                                     valueNumber.setText(modes.getValue());
+                                     valueNumber.setText(modes.getValue()+"");
+                                     valueCounter.setMetricText(modes.getMetricText());
+                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
 
                                      break;
                                  case DOWN:
@@ -312,7 +320,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                              .show();
                                      modes.decrementCurrentValue(5);
                                      valueTitle.setText("VALUE: " + modes.getValue());
-                                     valueNumber.setText(modes.getValue());
+                                     valueCounter.setMetricText(modes.getMetricText());
+                                     valueNumber.setText(modes.getValue()+"");
+                                     valueCounter.setValues(modes.getValue(), 0, 0);
 
                                      break;
                                  default:
@@ -558,9 +568,28 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             return R.drawable.nrfuart_hdpi_icon;
         }
 
-        @NonNull
-        public String getValue() {
-            return values[currentPosition]+"";
+        /**
+         *
+         * @return a unit of text to return
+         */
+        public String getMetricText() {
+            if (getIconType().contains("fan")) {
+                return "";
+            }
+            if (getIconType().contains("temperature")) {
+                return "Celsius";
+            }
+            if (getIconType().contains("radio")) {
+                return "mHz";
+            }
+            if (getIconType().contains("volume")) {
+                return "%";
+            }
+            return "";
+        }
+
+        public int getValue() {
+            return values[currentPosition];
         }
 
         public int getCurrentPosition() {

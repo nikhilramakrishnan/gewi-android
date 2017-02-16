@@ -105,16 +105,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
                 <ImageView
-                    android:layout_marginTop="70dp"
                     android:id="@+id/iconImage"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
+                    android:layout_width="130dp"
+                    android:layout_height="130dp"
                     android:scaleType="fitXY"
+                    android:layout_centerVertical="true"
                     android:layout_gravity="center"/>
                 <View
                     android:id="@+id/splitter"
                     android:layout_toRightOf="@id/iconImage"
-                    android:layout_margin="30dp"
+                    android:layout_centerInParent="true"
+
                     android:layout_width="1dp"
                     android:layout_height="match_parent">
                 </View>
@@ -124,9 +125,25 @@
                     android:layout_marginTop="100dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:textSize="46sp"
                     android:gravity="center"
                     android:text="hahaha"/>
+                <com.db.circularcounter.CircularCounter
+                    xmlns:counter="http://schemas.android.com/apk/res-auto"
+                    android:id="@+id/valueCounter"
+                    android:layout_width="220dp"
+                    android:layout_height="220dp"
+                    android:layout_marginLeft="50dp"
+                    android:paddingBottom="20dp"
+                    android:paddingTop="20dp"
+                    android:layout_centerVertical="true"
+                    counter:range="60"
+                    counter:textSize="74sp"
+                    counter:textColor="#000000"
+                    counter:metricSize="16sp"
+                    counter:metricText="metric"
+                    android:layout_toEndOf="@+id/splitter" />
             </RelativeLayout>
         </com.nordicsemi.nrfUARTv2.GewiLayout>
     </FrameLayout>
