@@ -297,7 +297,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      valueTitle.setText("VALUE: " + modes.getValue());
                                      iconTitle.setText("ICON: " + modes.getIconType());
                                      valueNumber.setText(modes.getValue()+"");
-                                     valueCounter.setValues(modes.getValue(), 0, 0);
+                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
                                      valueCounter.setMetricText(modes.getMetricText());
                                      iconImage.setImageResource(modes.getImage());
                                      ((GewiLayout) iconHud).setColors(modes);
