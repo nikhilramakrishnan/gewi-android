@@ -108,6 +108,7 @@
                     android:id="@+id/iconImage"
                     android:layout_width="130dp"
                     android:layout_height="130dp"
+                    android:tint="#c9ccd3"
                     android:scaleType="fitXY"
                     android:layout_centerVertical="true"
                     android:layout_gravity="center"/>
@@ -140,7 +141,7 @@
                     android:layout_centerVertical="true"
                     counter:range="60"
                     counter:textSize="74sp"
-                    counter:textColor="#000000"
+                    counter:textColor="#c9ccd3"
                     counter:metricSize="16sp"
                     counter:metricText="metric"
                     android:layout_toEndOf="@+id/splitter" />

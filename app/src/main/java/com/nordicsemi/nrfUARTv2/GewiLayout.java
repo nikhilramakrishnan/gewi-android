@@ -27,12 +27,16 @@ public class GewiLayout extends RelativeLayout {
     }
 
     private void setup() {
-        setBackgroundColor(ContextCompat.getColor(getContext(), android.R.color.tertiary_text_light));
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.shadow));
 
     }
 
     public void setColors(MainActivity.Modes modes) {
-        if (modes == null) {
+        // for now, set all background colors to grey until we figure out what the best colors
+        // and opacities to use are.
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.shadow));
+        /*
+        if (modes != null) {
             setBackgroundColor(ContextCompat.getColor(getContext(), android.R.color.tertiary_text_light));
             return;
         }
@@ -53,5 +57,6 @@ public class GewiLayout extends RelativeLayout {
                 setBackgroundColor(ContextCompat.getColor(getContext(), R.color.yellow_translucent));
                 break;
         }
+        */
     }
 }

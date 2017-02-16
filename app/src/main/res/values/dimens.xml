@@ -5,5 +5,6 @@
 
     <color name="yellow_translucent">#99ffbb33</color>
     <color name="blue_translucent">#ff33b5e5</color>
+    <color name="shadow">#cc222222</color>
 
 </resources>
