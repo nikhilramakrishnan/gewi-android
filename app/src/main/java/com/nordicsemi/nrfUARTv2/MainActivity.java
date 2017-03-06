@@ -24,22 +24,10 @@
 package com.nordicsemi.nrfUARTv2;
 
 
-
-
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.util.Date;
-
-
-import com.db.circularcounter.CircularCounter;
-import com.nordicsemi.nrfUARTv2.UartService;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -49,17 +37,13 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -72,6 +56,16 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.db.circularcounter.CircularCounter;
+import com.nordicsemi.nrfUARTv2.radio.FmRadioListener;
+import com.nordicsemi.nrfUARTv2.radio.FmRadioService;
+import com.nordicsemi.nrfUARTv2.radio.FmRadioStation;
+import com.nordicsemi.nrfUARTv2.radio.FmRadioUtils;
+
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.util.Date;
+
 public class MainActivity extends Activity implements RadioGroup.OnCheckedChangeListener {
     private static final int REQUEST_SELECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -80,6 +74,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private static final int UART_PROFILE_CONNECTED = 20;
     private static final int UART_PROFILE_DISCONNECTED = 21;
     private static final int STATE_OFF = 10;
+    private static final boolean SHORT_ANNTENNA_SUPPORT;
 
     TextView mRemoteRssiVal;
     RadioGroup mRg;
@@ -102,6 +97,28 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private CircularCounter valueCounter;
 
     private Modes modes;
+
+    private FmRadioService mRadioService;
+    private FmRadioListener mFmRadioListener;
+    private ServiceConnection mRadioServiceConnection;
+    private AudioManager mAudioManager;
+    private boolean mIsRadioServiceBinded;
+    private boolean mIsRadioServiceStarted;
+    private int mCurrentStation;
+
+    public MainActivity() {
+        this.mIsRadioServiceBinded = SHORT_ANNTENNA_SUPPORT;
+        this.mIsRadioServiceStarted = SHORT_ANNTENNA_SUPPORT;
+        this.mCurrentStation = FmRadioUtils.DEFAULT_STATION;
+        this.mFmRadioListener = new RadioListener();
+        this.mRadioService = null;
+        this.mAudioManager = null;
+        this.mRadioServiceConnection = new RadioServiceConnection();
+    }
+    static {
+        SHORT_ANNTENNA_SUPPORT = FmRadioUtils.isFmShortAntennaSupport();
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -197,6 +214,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
         // Set initial UI state
 
+        setupFm();
+
+    }
+
+    private void setupFm() {
+        FmRadioStation.initFmDatabase(getApplicationContext());
+        this.mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
     }
 
     //UART service connected/disconnected
@@ -382,6 +406,21 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     @Override
     public void onStart() {
         super.onStart();
+        FmRadioService.setActivityIsOnStop(SHORT_ANNTENNA_SUPPORT);
+        ComponentName serviceName = startService(new Intent(this, FmRadioService.class));
+        if (startService(new Intent(this, FmRadioService.class)) == null) {
+            Log.e(TAG, "Error: Cannot start FM service");
+        } else {
+            this.mIsRadioServiceStarted = true;
+            this.mIsRadioServiceBinded = bindService(new Intent(this, FmRadioService.class),
+                    this.mRadioServiceConnection, Context.BIND_AUTO_CREATE);
+            if (this.mIsRadioServiceBinded) {
+                Log.d(TAG, "FmRadioActivity.onStart end");
+                return;
+            }
+            Log.e(TAG, "Error: Cannot bind FM service");
+        }
+
     }
 
     @Override
@@ -397,13 +436,21 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         unbindService(mServiceConnection);
         mService.stopSelf();
         mService= null;
-
+        if (this.mRadioService != null) {
+            this.mRadioService.unregisterFmRadioListener(this.mFmRadioListener);
+            this.mFmRadioListener = null;
+        }
     }
 
     @Override
     protected void onStop() {
         Log.d(TAG, "onStop");
         super.onStop();
+        FmRadioService.setActivityIsOnStop(true);
+        if (this.mIsRadioServiceBinded) {
+            unbindService(this.mRadioServiceConnection);
+            this.mIsRadioServiceBinded = SHORT_ANNTENNA_SUPPORT;
+        }
     }
 
     @Override
@@ -437,6 +484,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
         switch (requestCode) {
 
         case REQUEST_SELECT_DEVICE:
@@ -510,6 +558,113 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             })
             .setNegativeButton(R.string.popup_no, null)
             .show();
+        }
+    }
+
+    public void powerUpFm() {
+        Log.v(TAG, "start powerUpFm");
+        if (!System.getProperty("ro.project", "trunk").equals("qmb_pk") || isAntennaAvailable()) {
+            this.mRadioService.powerUpAsync(FmRadioUtils.computeFrequency(this.mCurrentStation));
+            Log.v(TAG, "end powerUpFm");
+            return;
+        }
+        exitService();
+    }
+
+    public void exitService() {
+        Log.i(TAG, "exitService");
+        if (this.mIsRadioServiceBinded) {
+            unbindService(this.mServiceConnection);
+            this.mIsRadioServiceBinded = SHORT_ANNTENNA_SUPPORT;
+        }
+        if (this.mIsRadioServiceStarted) {
+            if (!stopService(new Intent(this, FmRadioService.class))) {
+                Log.e(TAG, "Error: Cannot stop the FM service.");
+            }
+            this.mIsRadioServiceStarted = SHORT_ANNTENNA_SUPPORT;
+        }
+    }
+
+    public void tuneToStation(int station) {
+        this.mRadioService.tuneStationAsync(FmRadioUtils.computeFrequency(station));
+    }
+
+    private void seekStation(int station, boolean direction) {
+        this.mRadioService.seekStationAsync(FmRadioUtils.computeFrequency(station), direction);
+    }
+
+    public void updateCurrentStation() {
+        int freq = this.mRadioService.getFrequency();
+        if (FmRadioUtils.isValidStation(freq) && this.mCurrentStation != freq) {
+            Log.d(TAG, "frequency in service isn't same as in database");
+            this.mCurrentStation = freq;
+            FmRadioStation.setCurrentStation(getApplicationContext(), this.mCurrentStation);
+        }
+    }
+
+    public boolean isAntennaAvailable() {
+        return this.mAudioManager.isWiredHeadsetOn();
+    }
+
+    /* renamed from: com.mediatek.fmradio.FmRadioActivity.1 */
+    class RadioListener implements FmRadioListener {
+        RadioListener() {
+        }
+
+        public void onCallBack(Bundle bundle) {
+            int flag = bundle.getInt(FmRadioListener.CALLBACK_FLAG);
+            Log.d(MainActivity.TAG, "call back method flag:" + flag);
+            if (flag == 11) {
+                //FmRadioActivity.this.mHandler.removeCallbacksAndMessages(null);
+            }
+            //Message msg = FmRadioActivity.this.mHandler.obtainMessage(flag);
+            //msg.setData(bundle);
+            //FmRadioActivity.this.mHandler.removeMessages(flag);
+            //FmRadioActivity.this.mHandler.sendMessage(msg);
+        }
+    }
+
+    class RadioServiceConnection implements ServiceConnection {
+        RadioServiceConnection() {
+        }
+
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.d(MainActivity.TAG, "FmRadioActivity.onServiceConnected start");
+            MainActivity.this.mRadioService = ((FmRadioService.ServiceBinder) service).getService();
+            if (MainActivity.this.mService == null) {
+                Log.e(MainActivity.TAG, "ServiceConnection: Error: can't get Service");
+                return;
+            }
+            MainActivity.this.mRadioService.registerFmRadioListener(MainActivity.this.mFmRadioListener);
+            if (MainActivity.this.mRadioService.isServiceInited()) {
+                Log.d(MainActivity.TAG, "ServiceConnection: FM service is already init");
+                if (MainActivity.this.mRadioService.isDeviceOpen()) {
+                    if (!MainActivity.this.mRadioService.isPowerUp() && MainActivity.this.mRadioService.isModeNormal()) {
+                        Log.d(MainActivity.TAG, "Need to power up auto for this case");
+                        MainActivity.this.powerUpFm();
+                    } else if (!(MainActivity.this.mRadioService.isPowerUp() || MainActivity.this.mRadioService.isModeNormal() || MainActivity.this.mRadioService.isAntennaAvailable() || FmRadioUtils.isFmShortAntennaSupport())) {
+                        Log.w(MainActivity.TAG, "Need to show no antenna dialog for plug out earphone in onPause state");
+                    }
+                    MainActivity.this.tuneToStation(MainActivity.this.mCurrentStation);
+
+                    MainActivity.this.updateCurrentStation();
+                } else {
+                    Log.e(MainActivity.TAG, "ServiceConnection: service is exiting while start FM again");
+                    MainActivity.this.exitService();
+                }
+                if (System.getProperty("ro.project", "trunk").equals("qmb_pk") && !MainActivity.this.isAntennaAvailable()) {
+                    MainActivity.this.exitService();
+                    return;
+                }
+            }
+            Log.d(MainActivity.TAG, "ServiceConnection: FM service is not init");
+            MainActivity.this.mRadioService.initService(MainActivity.this.mCurrentStation);
+            MainActivity.this.powerUpFm();
+            Log.d(MainActivity.TAG, "MainActivity.onServiceConnected end");
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            Log.d(MainActivity.TAG, "FmRadioActivity.onServiceDisconnected");
         }
     }
 
