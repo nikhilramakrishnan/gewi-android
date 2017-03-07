@@ -8,8 +8,11 @@ android {
         minSdkVersion 18
         targetSdkVersion 23
     }
-
-
+    repositories {
+        maven {
+            url "https://jitpack.io"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -21,4 +24,5 @@ android {
 dependencies {
     compile 'com.android.support:support-v4:23.0.0'
     compile project(':circularcounter')
+    compile 'com.github.iammert:RadioPlayerService:efe3b5420b'
 }
