@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <declare-styleable name="CircularMeter"><attr format="color" name="textColor"/><attr format="dimension" name="textSize"/><attr format="string" name="typeface"/><attr format="dimension" name="metricSize"/><attr format="string" name="metricText"/><attr format="integer" name="range"/></declare-styleable>
-    <dimen name="metricPaddingY">25dp</dimen>
-    <dimen name="metricSize">14dp</dimen>
-    <dimen name="textSize">70dp</dimen>
-    <dimen name="width">10dp</dimen>
-</resources>
