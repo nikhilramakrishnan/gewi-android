@@ -80,6 +80,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private static final int UART_PROFILE_CONNECTED = 20;
     private static final int UART_PROFILE_DISCONNECTED = 21;
     private static final int STATE_OFF = 10;
+    private static final String SQUEEZE = "sq";
+    private static final String UP = "up";
+    private static final String DOWN = "dn";
+    private static final String NIL = "nil";
 
     TextView mRemoteRssiVal;
     RadioGroup mRg;
@@ -103,6 +107,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
     private Modes modes;
     private InfotainmentController infotainmentController;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -299,6 +304,12 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      iconImage.setImageResource(modes.getImage());
                                      ((GewiLayout) iconHud).setColors(modes);
 
+                                     if (modes.getIconType().contains("radio")) {
+                                         infotainmentController.startRadio();
+                                     } else {
+                                         infotainmentController.stopRadio();
+                                     }
+
                                      break;
                                  case UP:
                                      modes.incrementCurrentValue(1);
@@ -307,7 +318,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      valueCounter.setMetricText(modes.getMetricText());
                                      valueCounter.setRange(modes.getMaximum());
                                      valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
-
+                                     if (modes.getIconType().contains("radio")) {
+                                         infotainmentController.nextRadioStation();
+                                     }
                                      break;
                                  case DOWN:
                                      modes.decrementCurrentValue(1);
@@ -316,7 +329,9 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                                      valueNumber.setText(modes.getValue()+"");
                                      valueCounter.setRange(modes.getMaximum());
                                      valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
-
+                                     if (modes.getIconType().contains("radio")) {
+                                         infotainmentController.previousRadioStation();
+                                     }
                                      break;
                                  default:
                                      break;
@@ -349,15 +364,34 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
      * @return {@link MotionAction} that tells rest of code what to do.
      */
     private MotionAction readTransmissionAndReturnAction(String transmitted) {
-        if (transmitted.contains("squeeze")) {
+        // gestures[0]: left FSR
+        // gestures[1]: right FSR
+        // gestures[2]: left FSLP
+        // gestures[3]: right FSLP
+        String[] gestures =  transmitted.split(",");
+
+        // right and left FSR need to be squeezed to change screen
+        if (gestures[0].contains(SQUEEZE) && gestures[1].contains(SQUEEZE)) {
             return MotionAction.SQUEEZE;
         }
-        if (transmitted.contains("up")) {
+
+        if (gestures[2].contains(UP) || gestures[3].contains(UP)) {
             return MotionAction.UP;
         }
-        if (transmitted.contains("down")) {
+
+        if (gestures[2].contains(DOWN) || gestures[3].contains(DOWN)) {
             return MotionAction.DOWN;
         }
+//
+//        if (transmitted.contains("squeeze")) {
+//            return MotionAction.SQUEEZE;
+//        }
+//        if (transmitted.contains("up")) {
+//            return MotionAction.UP;
+//        }
+//        if (transmitted.contains("down")) {
+//            return MotionAction.DOWN;
+//        }
         // this should never happen
         Log.e(TAG, "None of the gestures took place");
         return MotionAction.WAT;
@@ -411,6 +445,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     protected void onPause() {
         Log.d(TAG, "onPause");
         super.onPause();
+        // if the radio was active, modes's current position would be pointing at 0
+        if (modes.getCurrentPosition() == 0) {
+            infotainmentController.stopRadio();
+        }
     }
 
     @Override
@@ -428,7 +466,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
-
     }
 
 
@@ -480,7 +517,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
     private void showMessage(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-
     }
 
     @Override
@@ -529,7 +565,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public Modes() {
-            this.iconTypes = new String[] {"radio", "volume"};
+            this.iconTypes = new String[] {"radio"};
             this.values = new int[iconTypes.length];
             for (int index : values) {
                 values[index] = 0;
@@ -548,8 +584,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
          * @return a resource ID to an image in the drawables folder
          */
         public int getImage() {
-            if (getIconType().contains("fan")) {
-                // return fan icon image resource id
+            if (getIconType().contains("cd")) {
+                // return cd icon image resource id
             }
             if (getIconType().contains("temperature")) {
                 // return thermometer icon resource id
@@ -570,7 +606,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
          * @return a unit of text to return
          */
         public String getMetricText() {
-            if (getIconType().contains("fan")) {
+            if (getIconType().contains("cd")) {
                 return "";
             }
             if (getIconType().contains("temperature")) {
@@ -587,7 +623,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
         public int getValue() {
             if (getIconType().contains("radio")) {
-                return values[currentPosition]+89;
+                return values[currentPosition];
             }
             return values[currentPosition];
         }

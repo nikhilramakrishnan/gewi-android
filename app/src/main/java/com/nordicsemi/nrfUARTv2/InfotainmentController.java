@@ -8,11 +8,10 @@ import co.mobiwise.library.RadioManager;
 
 public class InfotainmentController {
 
-    private int station;
-
-    private RadioManager mRadioManager;
-    private Station[] mStations;
     private Context mContext;
+    private int station;
+    protected RadioManager mRadioManager;
+    private Station[] mStations;
 
     public InfotainmentController(@NonNull Context context) {
         mContext = context;
@@ -33,20 +32,42 @@ public class InfotainmentController {
         return stations;
     }
 
-    public void connectRadio() {
+    void connectRadio() {
         mRadioManager.connect();
     }
 
-    public void disconnectRadio() {
+    void disconnectRadio() {
         mRadioManager.disconnect();
     }
 
-    public void startRadio() {
-        mRadioManager.startRadio("http://cast9.directhostingcenter.com:2199/tunein/soevwkmu.pls");
+    void startRadio() {
+        mRadioManager.connect();
+        mRadioManager.startRadio(mStations[station].url);
     }
 
-    public void stopRadio() {
+    void stopRadio() {
         mRadioManager.stopRadio();
+        mRadioManager.disconnect();
+    }
+
+    void nextRadioStation() {
+        station++;
+        if (station == 4) {
+            station = 0;
+        }
+        startRadio();
+    }
+
+    void previousRadioStation() {
+        station--;
+        if (station == -1) {
+            station = 3;
+        }
+        startRadio();
+    }
+
+    boolean isRadioPlaying() {
+        return mRadioManager.isPlaying();
     }
 
     private class Station {
