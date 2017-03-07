@@ -102,6 +102,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     private CircularCounter valueCounter;
 
     private Modes modes;
+    private InfotainmentController infotainmentController;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -132,6 +133,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         valueCounter = (CircularCounter) iconHud.findViewById(R.id.valueCounter);
 
         modes = new Modes();
+        infotainmentController = new InfotainmentController(getApplicationContext());
 
         iconTitle.setText("ICON: " + modes.getIconType());
         valueTitle.setText("VALUE: " + modes.getValue());
@@ -194,9 +196,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
             }
         });
-
-        // Set initial UI state
-
     }
 
     //UART service connected/disconnected
@@ -382,6 +381,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     @Override
     public void onStart() {
         super.onStart();
+        infotainmentController.connectRadio();
     }
 
     @Override
@@ -404,6 +404,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     protected void onStop() {
         Log.d(TAG, "onStop");
         super.onStop();
+        infotainmentController.disconnectRadio();
     }
 
     @Override
@@ -429,6 +430,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
     }
+
+
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
