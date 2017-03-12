@@ -24,22 +24,10 @@
 package com.nordicsemi.nrfUARTv2;
 
 
-
-
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.util.Date;
-
-
-import com.db.circularcounter.CircularCounter;
-import com.nordicsemi.nrfUARTv2.UartService;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -49,17 +37,15 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.AttributeSet;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -71,6 +57,12 @@ import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.db.circularcounter.CircularCounter;
+
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.util.Date;
 
 public class MainActivity extends Activity implements RadioGroup.OnCheckedChangeListener {
     private static final int REQUEST_SELECT_DEVICE = 1;
@@ -107,6 +99,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
     private Modes modes;
     private InfotainmentController infotainmentController;
+    private AudioManager mAudioManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -149,6 +142,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         edtMessage = (EditText) findViewById(R.id.sendText);
         service_init();
 
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
 
         // Handle Disconnect & Connect button
@@ -253,6 +247,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                              listAdapter.add("["+currentDateTimeString+"] Connected to: "+ mDevice.getName());
                         	 	messageListView.smoothScrollToPosition(listAdapter.getCount() - 1);
                              mState = UART_PROFILE_CONNECTED;
+                         interpretAction(MotionAction.SQUEEZE);
                      }
             	 });
             }
@@ -270,6 +265,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                              listAdapter.add("["+currentDateTimeString+"] Disconnected to: "+ mDevice.getName());
                              mState = UART_PROFILE_DISCONNECTED;
                              mService.close();
+                             if (infotainmentController.isRadioPlaying()) {
+                                 infotainmentController.stopRadio();
+                             }
+                             infotainmentController.releaseMediaPlayer();
                             //setUiState();
 
                      }
@@ -292,50 +291,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                              // send message to method to pull up different functions
                              MotionAction motionAction = readTransmissionAndReturnAction(
                                      text.trim().toLowerCase());
-                             switch (motionAction) {
-                                 case SQUEEZE:
-                                     modes.next();
-                                     valueTitle.setText("VALUE: " + modes.getValue());
-                                     iconTitle.setText("ICON: " + modes.getIconType());
-                                     valueNumber.setText(modes.getValue()+"");
-                                     valueCounter.setRange(modes.getMaximum());
-                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
-                                     valueCounter.setMetricText(modes.getMetricText());
-                                     iconImage.setImageResource(modes.getImage());
-                                     ((GewiLayout) iconHud).setColors(modes);
-
-                                     if (modes.getIconType().contains("radio")) {
-                                         infotainmentController.startRadio();
-                                     } else {
-                                         infotainmentController.stopRadio();
-                                     }
-
-                                     break;
-                                 case UP:
-                                     modes.incrementCurrentValue(1);
-                                     valueTitle.setText("VALUE: " + modes.getValue());
-                                     valueNumber.setText(modes.getValue()+"");
-                                     valueCounter.setMetricText(modes.getMetricText());
-                                     valueCounter.setRange(modes.getMaximum());
-                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
-                                     if (modes.getIconType().contains("radio")) {
-                                         infotainmentController.nextRadioStation();
-                                     }
-                                     break;
-                                 case DOWN:
-                                     modes.decrementCurrentValue(1);
-                                     valueTitle.setText("VALUE: " + modes.getValue());
-                                     valueCounter.setMetricText(modes.getMetricText());
-                                     valueNumber.setText(modes.getValue()+"");
-                                     valueCounter.setRange(modes.getMaximum());
-                                     valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
-                                     if (modes.getIconType().contains("radio")) {
-                                         infotainmentController.previousRadioStation();
-                                     }
-                                     break;
-                                 default:
-                                     break;
-                                 }
+                             interpretAction(motionAction);
                          	String currentDateTimeString = DateFormat.getTimeInstance().format(new Date());
                         	 	listAdapter.add("["+currentDateTimeString+"] RX: "+text);
                         	 	messageListView.smoothScrollToPosition(listAdapter.getCount() - 1);
@@ -371,30 +327,105 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         String[] gestures =  transmitted.split(",");
 
         // right and left FSR need to be squeezed to change screen
-        if (gestures[0].contains(SQUEEZE) && gestures[1].contains(SQUEEZE)) {
+        if (gestures[0].contains(SQUEEZE)) {
             return MotionAction.SQUEEZE;
         }
 
-        if (gestures[2].contains(UP) || gestures[3].contains(UP)) {
+        if (gestures[3].contains(UP)) {
             return MotionAction.UP;
         }
 
-        if (gestures[2].contains(DOWN) || gestures[3].contains(DOWN)) {
+        if (gestures[3].contains(DOWN)) {
             return MotionAction.DOWN;
         }
-//
-//        if (transmitted.contains("squeeze")) {
-//            return MotionAction.SQUEEZE;
-//        }
-//        if (transmitted.contains("up")) {
-//            return MotionAction.UP;
-//        }
-//        if (transmitted.contains("down")) {
-//            return MotionAction.DOWN;
-//        }
+
+        if (gestures[2].contains(UP)) {
+            return MotionAction.VOLUP;
+        }
+
+        if (gestures[2].contains(DOWN)) {
+            return MotionAction.VOLDN;
+        }
         // this should never happen
         Log.e(TAG, "None of the gestures took place");
         return MotionAction.WAT;
+    }
+
+    private void interpretAction(final MotionAction motionAction) {
+        switch (motionAction) {
+            case SQUEEZE:
+                modes.next();
+                if (modes.getIconType().contains("radio")) {
+                    infotainmentController.startRadio();
+                } else {
+                    infotainmentController.stopRadio();
+                }
+                if (modes.getIconType().contains("cd")) {
+                    infotainmentController.startMediaPlayer();
+                } else {
+                    if (infotainmentController.isMediaPlayerPrepared()) {
+                        infotainmentController.pauseMediaPlayer();
+                    }
+                }
+                valueTitle.setText("VALUE: " + modes.getValue());
+                iconTitle.setText("ICON: " + modes.getIconType());
+                valueNumber.setText(modes.getValue()+"");
+                valueCounter.setRange(modes.getMaximum());
+                valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
+                valueCounter.setMetricText(modes.getMetricText());
+                iconImage.setImageResource(modes.getImage());
+                ((GewiLayout) iconHud).setColors(modes);
+                break;
+            case UP:
+                if (modes.getIconType().contains("radio") && modes.getValue() != modes.radioMax) {
+                    infotainmentController.nextRadioStation();
+                }
+                if (modes.getIconType().contains("cd") && modes.getValue() != modes.cdMax) {
+                    infotainmentController.nextSong();
+                }
+                modes.incrementCurrentValue(1);
+                valueTitle.setText("VALUE: " + modes.getValue());
+                valueNumber.setText(modes.getValue()+"");
+                valueCounter.setMetricText(modes.getMetricText());
+                valueCounter.setRange(modes.getMaximum());
+                valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
+                break;
+            case DOWN:
+                if (modes.getIconType().contains("radio") && modes.getValue() != 0) {
+                    infotainmentController.previousRadioStation();
+                }
+                if (modes.getIconType().contains("cd") && modes.getValue() != 0) {
+                    infotainmentController.previousSong();
+                }
+                modes.decrementCurrentValue(1);
+                valueTitle.setText("VALUE: " + modes.getValue());
+                valueCounter.setMetricText(modes.getMetricText());
+                valueNumber.setText(modes.getValue()+"");
+                valueCounter.setRange(modes.getMaximum());
+                valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
+                break;
+            case VOLUP:
+                if (mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        == mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) {
+                    break;
+                }
+                mAudioManager.setStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC)+1,
+                        AudioManager.FLAG_SHOW_UI);
+                break;
+            case VOLDN:
+                if (mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0) {
+                    break;
+                }
+                mAudioManager.setStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC)-1,
+                        AudioManager.FLAG_SHOW_UI);
+                break;
+            default:
+                break;
+        }
     }
 
     private void service_init() {
@@ -439,16 +470,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         Log.d(TAG, "onStop");
         super.onStop();
         infotainmentController.disconnectRadio();
+        infotainmentController.releaseMediaPlayer();
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
         super.onPause();
-        // if the radio was active, modes's current position would be pointing at 0
-        if (modes.getCurrentPosition() == 0) {
-            infotainmentController.stopRadio();
-        }
     }
 
     @Override
@@ -467,8 +495,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
     }
-
-
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
@@ -524,6 +550,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         if (btnConnectDisconnect.getVisibility() != View.VISIBLE) {
             btnConnectDisconnect.setVisibility(View.VISIBLE);
             findViewById(R.id.hud).setVisibility(View.INVISIBLE);
+            findViewById(R.id.iconHud).setVisibility(View.INVISIBLE);
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             return;
         }
@@ -553,6 +580,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     }
 
     class Modes {
+        private final int cdMax = 1;
+        private final int radioMax = 2;
         private final String[] iconTypes;
         private final int[] values;
 
@@ -565,7 +594,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public Modes() {
-            this.iconTypes = new String[] {"radio"};
+            this.iconTypes = new String[] {"radio", "cd"};
             this.values = new int[iconTypes.length];
             for (int index : values) {
                 values[index] = 0;
@@ -585,18 +614,11 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
          */
         public int getImage() {
             if (getIconType().contains("cd")) {
-                // return cd icon image resource id
-            }
-            if (getIconType().contains("temperature")) {
-                // return thermometer icon resource id
+                return R.drawable.ic_play_circle_filled_black_24dp;
             }
             if (getIconType().contains("radio")) {
                 // return radio icon resource id
                 return R.drawable.ic_headset_black_24dp;
-            }
-            if (getIconType().contains("volume")) {
-                // return volume icon resource id
-                return R.drawable.ic_volume_up_black_24dp;
             }
             return R.drawable.nrfuart_hdpi_icon;
         }
@@ -607,39 +629,24 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
          */
         public String getMetricText() {
             if (getIconType().contains("cd")) {
-                return "";
-            }
-            if (getIconType().contains("temperature")) {
-                return "Celsius";
+                return "CD";
             }
             if (getIconType().contains("radio")) {
-                return "mHz";
-            }
-            if (getIconType().contains("volume")) {
-                return "%";
+                return "radio";
             }
             return "";
         }
 
         public int getValue() {
-            if (getIconType().contains("radio")) {
-                return values[currentPosition];
-            }
             return values[currentPosition];
         }
 
         public int getMaximum() {
-            if (getIconType().contains("fan")) {
-                return 4;
-            }
-            if (getIconType().contains("temperature")) {
-                return 30;
+            if (getIconType().contains("cd")) {
+                return cdMax;
             }
             if (getIconType().contains("radio")) {
-                return 20;
-            }
-            if (getIconType().contains("volume")) {
-                return 100;
+                return radioMax;
             }
             return -1;
         }
@@ -649,10 +656,18 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public void incrementCurrentValue(int value) {
-            values[currentPosition] += value;
+            if (getIconType().contains("cd") && values[currentPosition] != cdMax) {
+                values[currentPosition] += value;
+            }
+            if (getIconType().contains("radio") && values[currentPosition] != radioMax) {
+                values[currentPosition] += value;
+            }
         }
 
         public void decrementCurrentValue(int value) {
+            if (values[currentPosition] == 0) {
+                return;
+            }
             values[currentPosition] -= value;
         }
 

@@ -4,5 +4,7 @@ public enum MotionAction {
     SQUEEZE,
     UP,
     DOWN,
-    WAT
+    WAT,
+    VOLUP,
+    VOLDN
 }
