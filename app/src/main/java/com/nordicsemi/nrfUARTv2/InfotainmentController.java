@@ -14,6 +14,8 @@ import co.mobiwise.library.RadioListener;
 import co.mobiwise.library.RadioManager;
 
 class InfotainmentController {
+    static final int RADIO_MAX = 3;
+    static final int CD_MAX = 1;
 
     private Context mContext;
     private int station;
@@ -25,6 +27,7 @@ class InfotainmentController {
 
     private boolean isRadioConnected = false;
     private boolean isMediaPlayerPrepared = false;
+    private boolean isMediaPlayerReleased = false;
     private boolean isSongComplete = false;
 
     InfotainmentController(@NonNull Context context) {
@@ -53,7 +56,8 @@ class InfotainmentController {
         final String[] radioUrls = {
                 "https://www.sub.fm/listen.pls",
                 "http://rockfm.rockfm.com.tr:9450",
-                "http://cast9.directhostingcenter.com:2199/tunein/soevwkmu.pls"};
+                "http://cast9.directhostingcenter.com:2199/tunein/soevwkmu.pls",
+                "http://www.abc.net.au/res/streaming/audio/aac/triplej.pls"};
         Station[] stations = new Station[radioUrls.length];
         for (int i = 0; i < radioUrls.length; i++) {
             stations[i] = new Station(radioUrls[i]);
@@ -69,16 +73,19 @@ class InfotainmentController {
     }
 
     private void prepareMediaPlayerFiles(@NonNull String fullyJustifiedFilename) {
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             AssetFileDescriptor descriptor = mContext.getAssets().openFd(fullyJustifiedFilename);
+            if (!isMediaPlayerReleased) {
+                mMediaPlayer.reset();
+            }
             mMediaPlayer.setDataSource(
                     descriptor.getFileDescriptor(),
                     descriptor.getStartOffset(),
                     descriptor.getLength());
-            mMediaPlayer.prepare();
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mMediaPlayer.prepareAsync();
         } catch (Exception e) {
-            Toast.makeText(mContext, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -91,6 +98,15 @@ class InfotainmentController {
 
     void releaseMediaPlayer() {
         mMediaPlayer.release();
+        isMediaPlayerReleased = true;
+        isMediaPlayerPrepared = false;
+    }
+
+    void resetMediaPlayer() {
+        if (isMediaPlayerReleased) {
+            return;
+        }
+        mMediaPlayer.reset();
         isMediaPlayerPrepared = false;
     }
 
@@ -100,6 +116,10 @@ class InfotainmentController {
             return;
         }
         mMediaPlayer.start();
+    }
+
+    void prepareMediaPlayerFiles() {
+        prepareMediaPlayerFiles(mSongs[0]);
     }
 
     void stopMediaPlayer() {
@@ -140,7 +160,7 @@ class InfotainmentController {
 
     void nextRadioStation() {
         station++;
-        if (station == 3) {
+        if (station == RADIO_MAX+1) {
             station = 0;
         }
         startRadio(true);
@@ -149,7 +169,7 @@ class InfotainmentController {
     void previousRadioStation() {
         station--;
         if (station == -1) {
-            station = 2;
+            station = RADIO_MAX;
         }
         startRadio(true);
     }
@@ -157,7 +177,7 @@ class InfotainmentController {
     void nextSong() {
         mMediaPlayer.reset();
         currentSong++;
-        if (currentSong == 2) {
+        if (currentSong == CD_MAX+1) {
             currentSong = 0;
         }
         prepareMediaPlayerFiles(mSongs[currentSong]);
@@ -167,7 +187,7 @@ class InfotainmentController {
         mMediaPlayer.reset();
         currentSong--;
         if (currentSong == -1) {
-            currentSong = 1;
+            currentSong = CD_MAX;
         }
         prepareMediaPlayerFiles(mSongs[currentSong]);
     }
@@ -178,6 +198,10 @@ class InfotainmentController {
 
     boolean isMediaPlayerPrepared() {
         return isMediaPlayerPrepared;
+    }
+
+    String getStationName() {
+        return mStations[station].name;
     }
 
     private class Station {

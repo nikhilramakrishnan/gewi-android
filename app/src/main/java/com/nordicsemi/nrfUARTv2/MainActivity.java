@@ -268,7 +268,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                              if (infotainmentController.isRadioPlaying()) {
                                  infotainmentController.stopRadio();
                              }
-                             infotainmentController.releaseMediaPlayer();
+                             infotainmentController.resetMediaPlayer();
                             //setUiState();
 
                      }
@@ -377,11 +377,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                 ((GewiLayout) iconHud).setColors(modes);
                 break;
             case UP:
-                if (modes.getIconType().contains("radio") && modes.getValue() != modes.radioMax) {
-                    infotainmentController.nextRadioStation();
-                }
-                if (modes.getIconType().contains("cd") && modes.getValue() != modes.cdMax) {
-                    infotainmentController.nextSong();
+                if (modes.getValue() != modes.getMaximum()) {
+                    if (modes.getIconType().contains("radio")) {
+                        infotainmentController.nextRadioStation();
+                    }
+                    if (modes.getIconType().contains("cd")) {
+                        infotainmentController.nextSong();
+                    }
                 }
                 modes.incrementCurrentValue(1);
                 valueTitle.setText("VALUE: " + modes.getValue());
@@ -391,11 +393,13 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                 valueCounter.setValues(modes.getValue(), modes.getValue(), modes.getValue());
                 break;
             case DOWN:
-                if (modes.getIconType().contains("radio") && modes.getValue() != 0) {
-                    infotainmentController.previousRadioStation();
-                }
-                if (modes.getIconType().contains("cd") && modes.getValue() != 0) {
-                    infotainmentController.previousSong();
+                if (modes.getValue() != 0) {
+                    if (modes.getIconType().contains("radio")) {
+                        infotainmentController.previousRadioStation();
+                    }
+                    if (modes.getIconType().contains("cd")) {
+                        infotainmentController.previousSong();
+                    }
                 }
                 modes.decrementCurrentValue(1);
                 valueTitle.setText("VALUE: " + modes.getValue());
@@ -462,7 +466,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         unbindService(mServiceConnection);
         mService.stopSelf();
         mService= null;
-
     }
 
     @Override
@@ -580,8 +583,6 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
     }
 
     class Modes {
-        private final int cdMax = 1;
-        private final int radioMax = 2;
         private final String[] iconTypes;
         private final int[] values;
 
@@ -620,7 +621,7 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                 // return radio icon resource id
                 return R.drawable.ic_headset_black_24dp;
             }
-            return R.drawable.nrfuart_hdpi_icon;
+            return R.drawable.dey;
         }
 
         /**
@@ -632,7 +633,8 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                 return "CD";
             }
             if (getIconType().contains("radio")) {
-                return "radio";
+                return "Radio";
+                // return infotainmentController.getStationName();
             }
             return "";
         }
@@ -643,10 +645,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
 
         public int getMaximum() {
             if (getIconType().contains("cd")) {
-                return cdMax;
+                return InfotainmentController.CD_MAX;
             }
             if (getIconType().contains("radio")) {
-                return radioMax;
+                return InfotainmentController.RADIO_MAX;
             }
             return -1;
         }
@@ -656,10 +658,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         public void incrementCurrentValue(int value) {
-            if (getIconType().contains("cd") && values[currentPosition] != cdMax) {
+            if (getIconType().contains("cd") && values[currentPosition] != getMaximum()) {
                 values[currentPosition] += value;
             }
-            if (getIconType().contains("radio") && values[currentPosition] != radioMax) {
+            if (getIconType().contains("radio") && values[currentPosition] != getMaximum()) {
                 values[currentPosition] += value;
             }
         }
