@@ -331,6 +331,10 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
             return MotionAction.SQUEEZE;
         }
 
+        if (gestures[1].contains(SQUEEZE)) {
+            return MotionAction.UP;
+        }
+
         if (gestures[3].contains(UP)) {
             return MotionAction.UP;
         }
@@ -385,6 +389,16 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                         infotainmentController.nextSong();
                     }
                 }
+                if (modes.getValue() == modes.getMaximum()) {
+                    if (modes.getIconType().contains("radio")) {
+                        modes.decrementCurrentValue(InfotainmentController.RADIO_MAX+1);
+                        infotainmentController.nextRadioStation();
+                    }
+                    if (modes.getIconType().contains("cd")) {
+                        modes.decrementCurrentValue(InfotainmentController.CD_MAX+1);
+                        infotainmentController.nextSong();
+                    }
+                }
                 modes.incrementCurrentValue(1);
                 valueTitle.setText("VALUE: " + modes.getValue());
                 valueNumber.setText(modes.getValue()+"");
@@ -398,6 +412,17 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
                         infotainmentController.previousRadioStation();
                     }
                     if (modes.getIconType().contains("cd")) {
+                        infotainmentController.previousSong();
+                    }
+                }
+                if (modes.getValue() == 0) {
+                    if (modes.getIconType().contains("radio")) {
+                        modes.incrementCurrentValue(InfotainmentController.RADIO_MAX+1);
+                        infotainmentController.previousRadioStation();
+
+                    }
+                    if (modes.getIconType().contains("cd")) {
+                        modes.incrementCurrentValue(InfotainmentController.CD_MAX+1);
                         infotainmentController.previousSong();
                     }
                 }
