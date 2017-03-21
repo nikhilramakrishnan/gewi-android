@@ -336,11 +336,11 @@ public class MainActivity extends Activity implements RadioGroup.OnCheckedChange
         }
 
         if (gestures[3].contains(UP)) {
-            return MotionAction.UP;
+            return MotionAction.VOLUP;
         }
 
         if (gestures[3].contains(DOWN)) {
-            return MotionAction.DOWN;
+            return MotionAction.VOLDN;
         }
 
         if (gestures[2].contains(UP)) {
